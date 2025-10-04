@@ -4319,19 +4319,30 @@
                 
             const { trades, ledger } = appState;
             const closedTrades = trades.filter(t => t.exit_price && t.exit_date);
-            let netPnl = 0, grossProfit = 0, grossLoss = 0, wins = 0, losses = 0;
+            let netPnl = 0, grossProfit = 0, grossLoss = 0, totalNetProfit = 0, totalNetLoss = 0, wins = 0, losses = 0;
                 
             closedTrades.forEach(trade => {
-                const pnl = calculateNetPnl(trade);
-                netPnl += pnl;
-                    if (pnl > 0) {
-                        wins++;
-                        grossProfit += pnl;
-                    } else if (pnl < 0) {
-                        losses++;
-                        grossLoss += Math.abs(pnl);
-                    }
-                });
+                const netPnlValue = calculateNetPnl(trade);
+                netPnl += netPnlValue;
+                
+                // Calculate gross P&L (before charges)
+                const exitPrice = parseFloat(trade.exit_price);
+                const entryPrice = parseFloat(trade.entry_price);
+                const quantity = parseFloat(trade.quantity);
+                const isShort = trade.trade_type === 'Short' || trade.direction === 'Short';
+                const grossPnlValue = (exitPrice - entryPrice) * quantity * (isShort ? -1 : 1);
+                
+                // Use NET P&L to determine if it's a win or loss
+                if (netPnlValue > 0) {
+                    wins++;
+                    grossProfit += grossPnlValue;
+                    totalNetProfit += netPnlValue;
+                } else if (netPnlValue < 0) {
+                    losses++;
+                    grossLoss += Math.abs(grossPnlValue);
+                    totalNetLoss += Math.abs(netPnlValue);
+                }
+            });
                 
                 const totalTrades = closedTrades.length;
                 const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
@@ -5789,14 +5800,17 @@
                     }
                 });
                 
-                // Safely filter wins and losses with data validation
+                // Safely filter wins and losses with data validation (using NET P&L after charges)
                 const wins = closed.filter(t => {
                     try {
                         if (!t || typeof t.exit_price !== 'number' || typeof t.entry_price !== 'number' || typeof t.quantity !== 'number') {
                             return false;
                         }
-                        const pnl = (t.exit_price - t.entry_price) * t.quantity;
-                        return isFinite(pnl) && pnl > 0;
+                        const isShort = t.trade_type === 'Short' || t.direction === 'Short';
+                        const grossPnl = (t.exit_price - t.entry_price) * t.quantity * (isShort ? -1 : 1);
+                        const charges = (t.brokerage || 0) + (t.other_fees || 0);
+                        const netPnl = grossPnl - charges;
+                        return isFinite(netPnl) && netPnl > 0;
                     } catch (e) {
                         return false;
                     }
@@ -5807,8 +5821,11 @@
                         if (!t || typeof t.exit_price !== 'number' || typeof t.entry_price !== 'number' || typeof t.quantity !== 'number') {
                             return false;
                         }
-                        const pnl = (t.exit_price - t.entry_price) * t.quantity;
-                        return isFinite(pnl) && pnl < 0;
+                        const isShort = t.trade_type === 'Short' || t.direction === 'Short';
+                        const grossPnl = (t.exit_price - t.entry_price) * t.quantity * (isShort ? -1 : 1);
+                        const charges = (t.brokerage || 0) + (t.other_fees || 0);
+                        const netPnl = grossPnl - charges;
+                        return isFinite(netPnl) && netPnl < 0;
                     } catch (e) {
                         return false;
                     }
@@ -5817,7 +5834,7 @@
                 // Safely calculate win rate with division by zero protection
                 const winRate = closed.length > 0 ? (wins.length / closed.length) * 100 : 0;
                 
-                // Safely calculate gross profit with data validation
+                // Safely calculate gross profit with data validation (GROSS P&L - before charges)
                 let grossProfit = 0;
                 if (wins.length > 0) {
                     try {
@@ -5826,7 +5843,8 @@
                                 if (!t || typeof t.exit_price !== 'number' || typeof t.entry_price !== 'number' || typeof t.quantity !== 'number') {
                                     return s;
                                 }
-                                const pnl = (t.exit_price - t.entry_price) * t.quantity;
+                                const isShort = t.trade_type === 'Short' || t.direction === 'Short';
+                                const pnl = (t.exit_price - t.entry_price) * t.quantity * (isShort ? -1 : 1);
                                 return isFinite(pnl) ? s + pnl : s;
                             } catch (e) {
                                 return s;
@@ -5838,7 +5856,7 @@
                     }
                 }
                 
-                // Safely calculate gross loss with data validation
+                // Safely calculate gross loss with data validation (GROSS P&L - before charges)
                 let grossLoss = 0;
                 if (losses.length > 0) {
                     try {
@@ -5847,7 +5865,8 @@
                                 if (!t || typeof t.exit_price !== 'number' || typeof t.entry_price !== 'number' || typeof t.quantity !== 'number') {
                                     return s;
                                 }
-                                const pnl = (t.exit_price - t.entry_price) * t.quantity;
+                                const isShort = t.trade_type === 'Short' || t.direction === 'Short';
+                                const pnl = (t.exit_price - t.entry_price) * t.quantity * (isShort ? -1 : 1);
                                 return isFinite(pnl) ? s + pnl : s;
                             } catch (e) {
                                 return s;
@@ -5936,7 +5955,8 @@
                                 if (!t || typeof t.exit_price !== 'number' || typeof t.entry_price !== 'number' || typeof t.quantity !== 'number') {
                                     return sum;
                                 }
-                                const grossPnl = (t.exit_price - t.entry_price) * t.quantity;
+                                const isShort = t.trade_type === 'Short' || t.direction === 'Short';
+                                const grossPnl = (t.exit_price - t.entry_price) * t.quantity * (isShort ? -1 : 1);
                                 const charges = (t.brokerage || 0) + (t.other_fees || 0);
                                 
                                 if (isFinite(grossPnl) && isFinite(charges)) {
@@ -5962,7 +5982,8 @@
                                 if (!t || typeof t.exit_price !== 'number' || typeof t.entry_price !== 'number' || typeof t.quantity !== 'number') {
                                     return sum;
                                 }
-                                const grossPnl = (t.exit_price - t.entry_price) * t.quantity;
+                                const isShort = t.trade_type === 'Short' || t.direction === 'Short';
+                                const grossPnl = (t.exit_price - t.entry_price) * t.quantity * (isShort ? -1 : 1);
                                 const charges = (t.brokerage || 0) + (t.other_fees || 0);
                                 
                                 if (isFinite(grossPnl) && isFinite(charges)) {
@@ -15233,17 +15254,28 @@
                 const closedTrades = filteredTrades.filter(t => t.exit_price && t.exit_date);
                 
                 // Calculate stats from filtered trades
-                let netPnl = 0, grossProfit = 0, grossLoss = 0, wins = 0, losses = 0;
+                let netPnl = 0, grossProfit = 0, grossLoss = 0, totalNetProfit = 0, totalNetLoss = 0, wins = 0, losses = 0;
                 
                 closedTrades.forEach(trade => {
-                    const pnl = calculateNetPnl(trade);
-                    netPnl += pnl;
-                    if (pnl > 0) {
+                    const netPnlValue = calculateNetPnl(trade);
+                    netPnl += netPnlValue;
+                    
+                    // Calculate gross P&L (before charges)
+                    const exitPrice = parseFloat(trade.exit_price);
+                    const entryPrice = parseFloat(trade.entry_price);
+                    const quantity = parseFloat(trade.quantity);
+                    const isShort = trade.trade_type === 'Short' || trade.direction === 'Short';
+                    const grossPnlValue = (exitPrice - entryPrice) * quantity * (isShort ? -1 : 1);
+                    
+                    // Use NET P&L to determine if it's a win or loss
+                    if (netPnlValue > 0) {
                         wins++;
-                        grossProfit += pnl;
-                    } else if (pnl < 0) {
+                        grossProfit += grossPnlValue;
+                        totalNetProfit += netPnlValue;
+                    } else if (netPnlValue < 0) {
                         losses++;
-                        grossLoss += Math.abs(pnl);
+                        grossLoss += Math.abs(grossPnlValue);
+                        totalNetLoss += Math.abs(netPnlValue);
                     }
                 });
                 
@@ -15299,6 +15331,49 @@
                 
                 // Update account summary with filtered data
                 updateAccountSummary(filteredTrades, netPnl);
+                
+                // Update detailed stats with filtered data
+                updateDetailedStats(closedTrades, grossProfit, grossLoss, totalNetProfit, totalNetLoss);
+            }
+            
+            // Function to update detailed stats with filtered data
+            function updateDetailedStats(closedTrades, grossProfit, grossLoss, totalNetProfit, totalNetLoss) {
+                const container = document.getElementById('reports-metrics-grid');
+                if (!container) return;
+                
+                const metric = (label, value, accent='') => `
+                    <div class="flex items-center justify-between p-4 rounded-md" style="background-color: var(--bg-secondary);">
+                        <span class="text-sm" style="color: var(--text-secondary);">${label}</span>
+                        <span class="font-semibold ${accent}">${value}</span>
+                    </div>`;
+
+                // Override the parent grid layout
+                container.className = 'space-y-4';
+                container.innerHTML = `
+                        <!-- Row 1: Gross Profit and Gross Loss -->
+                        <div class="grid grid-cols-2 gap-4">
+                            ${metric('Gross Profit', `${formatCurrency(grossProfit)}`, 'text-green-500')}
+                            ${metric('Gross Loss', `${formatCurrency(-grossLoss)}`, 'text-red-500')}
+                        </div>
+                        
+                        <!-- Row 2: Total Net Profit and Total Net Loss -->
+                        <div class="grid grid-cols-2 gap-4">
+                            ${metric('Total Net Profit', `${formatCurrency(totalNetProfit)}`, 'text-green-500')}
+                            ${metric('Total Net Loss', `${formatCurrency(totalNetLoss)}`, 'text-red-500')}
+                        </div>
+                        
+                        <!-- Row 3: Avg. Stop Loss and Avg. Target Price -->
+                        <div class="grid grid-cols-2 gap-4">
+                            ${metric('Avg. Stop Loss', `${formatCurrency(0)}`)}
+                            ${metric('Avg. Target Price', `${formatCurrency(0)}`)}
+                        </div>
+                        
+                        <!-- Row 4: Avg. Risk/Reward and Avg. Holding Period -->
+                        <div class="grid grid-cols-2 gap-4">
+                            ${metric('Avg. Risk/Reward', '0.00')}
+                            ${metric('Avg. Holding Period', '0 days')}
+                        </div>
+                    `;
             }
             
             // Function to update account summary with filtered data
