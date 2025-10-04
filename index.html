@@ -8541,7 +8541,9 @@
                                 data: data,
                                 backgroundColor: data.map(value => value >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
                                 borderColor: data.map(value => value >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'),
-                                borderWidth: 1
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
                             }]
                         },
                         options: {
@@ -9845,7 +9847,9 @@
                                 data: data,
                                 backgroundColor: data.map(value => value >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
                                 borderColor: data.map(value => value >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'),
-                                borderWidth: 1
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
                             }]
                         },
                         options: {
@@ -10167,7 +10171,9 @@
                                 data: segmentPnlValues,
                                 backgroundColor: segmentLabels.map((_, index) => segmentColors[index % segmentColors.length]),
                                 borderColor: segmentLabels.map((_, index) => segmentBorderColors[index % segmentBorderColors.length]),
-                                borderWidth: 1
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
                             }]
                         },
                         options: {
@@ -10284,7 +10290,9 @@
                                 data: tradingStylePnlValues,
                                 backgroundColor: tradingStyleLabels.map((_, index) => tradingStyleColors[index % tradingStyleColors.length]),
                                 borderColor: tradingStyleLabels.map((_, index) => tradingStyleBorderColors[index % tradingStyleBorderColors.length]),
-                                borderWidth: 1
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
                             }]
                         },
                         options: {
@@ -10496,7 +10504,9 @@
                                 data: Object.values(dayPnlData),
                                 backgroundColor: dayColors,
                                 borderColor: dayBorderColors,
-                                borderWidth: 1
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
                             }]
                         },
                         options: {
@@ -10611,7 +10621,9 @@
                                     data: dayData,
                                     backgroundColor: 'rgba(249, 115, 22, 0.7)', // Orange color like Performance chart
                                     borderColor: 'rgba(249, 115, 22, 1)',
-                                    borderWidth: 1
+                                    borderWidth: 1,
+                                    borderRadius: 4,
+                                    borderSkipped: false
                                 }]
                             },
                             options: {
@@ -11319,7 +11331,9 @@
                                 data: strategyPnlValues,
                                 backgroundColor: strategyColors,
                                 borderColor: strategyBorderColors,
-                                borderWidth: 1
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderSkipped: false
                             }]
                         },
                         options: {
@@ -11461,14 +11475,18 @@
                                     data: brokerageData,
                                     backgroundColor: 'rgba(239, 68, 68, 0.7)', // Red for brokerage
                                     borderColor: 'rgba(239, 68, 68, 1)',
-                                    borderWidth: 1
+                                    borderWidth: 1,
+                                    borderRadius: 4,
+                                    borderSkipped: false
                                 },
                                 {
                                     label: 'Charges',
                                     data: otherFeesData,
                                     backgroundColor: 'rgba(245, 158, 11, 0.7)', // Amber for charges                                                                                                         
                                     borderColor: 'rgba(245, 158, 11, 1)',
-                                    borderWidth: 1
+                                    borderWidth: 1,
+                                    borderRadius: 4,
+                                    borderSkipped: false
                                 }
                             ]
                         },
